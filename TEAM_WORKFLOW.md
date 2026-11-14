@@ -3,16 +3,18 @@
 目标:MIT Indoor67 场景分类,截止 **2026-12-05 23:59 ET**。每个人都按下面流程走,分数才可比、代码才不会撞车。
 
 ## 0. 三条铁律
-1. **数据不进 git。** 图片只放共享 Google Drive(课程规定仅限本项目使用)。
+1. **数据不进 git。** 每人从 Kaggle 自己下载(课程规定仅限本项目使用)。
 2. **所有人用同一个验证划分** `splits/folds.csv`(默认 fold 0)。不要自己重新切分,否则分数没法比较。
 3. **别盯公开榜选模型。** 公开榜只占 30%,最终排名看私有榜 70%。用本地验证分数做决定。
 
 ## 1. 一次性准备(每人 15 分钟)
 1. 接受 GitHub 仓库邀请(私有仓库 `daml-indoor67`)。
-2. 在 Google Drive 打开共享文件夹 `daml-indoor67/`,右键 **添加快捷方式到"我的云端硬盘"**。
-3. 打开 `notebooks/colab_setup.ipynb`(Colab 里 *文件 > 打开 > GitHub*),开启 GPU,改 `RUN_USER` 为你的名字,从头运行。
-4. 创建一个只读的 GitHub token(Settings > Developer settings > Fine-grained tokens,仅选本仓库、Contents: Read)。Colab 里粘贴使用,不要写进 notebook。
-5. 跑通 baseline,确认你的 `val_acc` 与队友一致。
+2. 确认你的 Kaggle 账号已加入比赛并接受规则;在 Kaggle 账号设置里生成自己的 **API token**。
+3. 创建一个只读的 GitHub token(Settings > Developer settings > Fine-grained tokens,仅选本仓库、Contents: Read)。
+4. 打开 `notebooks/colab_setup.ipynb`(Colab 里 *文件 > 在 GitHub 中打开笔记本*),开启 GPU,改 `RUN_USER` 为你的名字,从头运行。两个 token 在运行时粘贴,**不要写进 notebook,也不要发到群里**。
+5. 数据由 notebook 直接从 Kaggle 下载到 Colab(每人一份,不用 Drive)。Colab 会话结束后数据会清空,重跑即可。
+6. 跑通 baseline,确认你的 `val_acc` 与队友一致。
+   - 在自己电脑上跑:下载并解压数据,设环境变量 `DATA_ROOT` 指向含 `train.csv` 和 `images/` 的文件夹,见 README。
 
 ## 2. 日常工作循环
 1. **认领**:在 GitHub Issues 里开(或认领)一个实验,写清"改什么、预期什么"。一个实验一个 Issue,一次只改一个变量。
