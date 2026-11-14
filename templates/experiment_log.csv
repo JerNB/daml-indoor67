@@ -1,0 +1,2 @@
+date,who,experiment_name,direction,what_changed (one variable),backbone,classifier_or_method,fold,seed,val_acc,vs_baseline,notes,kaggle_public_score,submitted
+2026-11-14,Jerry,baseline,A-baseline,none (reference),resnet50.a1_in1k,logistic regression C=1.0,0,42,0.771107,0.000,frozen features,,no
