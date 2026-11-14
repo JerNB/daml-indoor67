@@ -1,0 +1,12 @@
+# data, features, weights never go in git
+data/
+cache/
+*.npy
+*.pt
+*.pth
+*.ckpt
+*.zip
+submissions/*.csv
+__pycache__/
+.ipynb_checkpoints/
+.venv/
