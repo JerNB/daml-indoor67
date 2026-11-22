@@ -39,6 +39,8 @@ ap.add_argument("--fold", type=int, default=0, help="validation fold; -1 = train
 ap.add_argument("--workers", type=int, default=2)
 ap.add_argument("--limit", type=int, default=0, help="debug only: use N random labeled images")
 ap.add_argument("--name", default="finetune")
+ap.add_argument("--tta", action="store_true", help="test-time augmentation: average original + flipped image")
+ap.add_argument("--eval_ckpt", default="", help="skip training; load these weights and only evaluate / predict")
 a = ap.parse_args()
 
 set_seed()
@@ -127,8 +129,12 @@ def predict(dl):
     model.eval()                                          # evaluation mode (no dropout etc.)
     out = []
     for x, _ in dl:
+        x = x.to(dev)
         with torch.autocast(device_type=dev, dtype=torch.float16, enabled=use_amp):
-            out.append(model(x.to(dev)).argmax(1).cpu())  # highest score = predicted class
+            prob = model(x).float().softmax(1)            # 67 class probabilities per image
+            if a.tta:                                     # also look at the mirrored image
+                prob = prob + model(torch.flip(x, dims=[3])).float().softmax(1)
+        out.append(prob.argmax(1).cpu())                  # highest probability = predicted class
     return torch.cat(out).numpy()
 
 
@@ -140,7 +146,14 @@ ckpt_dir.mkdir(exist_ok=True)
 ckpt = ckpt_dir / f"{a.name}.pt"
 best_acc, best_ep, history = -1.0, 0, []
 
-for ep in range(1, a.epochs + 1):
+if a.eval_ckpt:                                           # reuse trained weights, no training
+    model.load_state_dict(torch.load(a.eval_ckpt, map_location=dev))
+    ckpt = Path(a.eval_ckpt)
+    if val_loader is not None:
+        best_acc = float((predict(val_loader) == va_df["y"].values).mean())
+        print(f"eval {ckpt.name}  tta={a.tta}  val_acc {best_acc:.4f}")
+
+for ep in range(1, 0 if a.eval_ckpt else a.epochs + 1):
     model.train()                                         # training mode
     t0, total, n = time.time(), 0.0, 0
     for x, y in train_loader:
@@ -173,14 +186,16 @@ if val_loader is not None:
     stamp = time.strftime("%Y%m%d-%H%M%S")
     rec = dict(name=a.name, user=who(), model=a.model, fold=a.fold, seed=SEED, val_acc=best_acc,
                best_epoch=best_ep, epochs=a.epochs, lr=a.lr, head_lr=a.head_lr, wd=a.wd,
-               smoothing=a.smoothing, bs=a.bs, img=a.img, limit=a.limit, history=history, time=stamp)
+               smoothing=a.smoothing, bs=a.bs, img=a.img, limit=a.limit, tta=a.tta,
+               eval_ckpt=a.eval_ckpt, history=history, time=stamp)
     Path("results/runs").mkdir(parents=True, exist_ok=True)
     fn = f"results/runs/{stamp}_{who()}_{a.name}.json"
     json.dump(rec, open(fn, "w"), indent=1)
     print("saved", fn)
 else:
     # fold == -1: trained on everything; save final weights and predict the test set
-    torch.save(model.state_dict(), ckpt)
+    if not a.eval_ckpt:
+        torch.save(model.state_dict(), ckpt)
     sample = pd.read_csv(root / "sample_submission.csv")
     test = pd.DataFrame({"file_path": [f"test/{i}.jpg" for i in sample["id"]], "y": -1})
     pred = predict(loader(test, eval_tf, shuffle=False))
