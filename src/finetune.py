@@ -181,17 +181,15 @@ for ep in range(1, 0 if a.eval_ckpt else a.epochs + 1):
 # ---------------------------------------------------------------------------
 # 6. Outputs
 # ---------------------------------------------------------------------------
+stamp = time.strftime("%Y%m%d-%H%M%S")
+rec = dict(name=a.name, user=who(), model=a.model, fold=a.fold, seed=SEED, val_acc=None,
+           best_epoch=None, epochs=a.epochs, lr=a.lr, head_lr=a.head_lr, wd=a.wd,
+           smoothing=a.smoothing, bs=a.bs, img=a.img, limit=a.limit, tta=a.tta,
+           eval_ckpt=a.eval_ckpt, history=history, time=stamp)
+
 if val_loader is not None:
     print(f"best val_acc {best_acc:.4f} at epoch {best_ep}; weights -> {ckpt}")
-    stamp = time.strftime("%Y%m%d-%H%M%S")
-    rec = dict(name=a.name, user=who(), model=a.model, fold=a.fold, seed=SEED, val_acc=best_acc,
-               best_epoch=best_ep, epochs=a.epochs, lr=a.lr, head_lr=a.head_lr, wd=a.wd,
-               smoothing=a.smoothing, bs=a.bs, img=a.img, limit=a.limit, tta=a.tta,
-               eval_ckpt=a.eval_ckpt, history=history, time=stamp)
-    Path("results/runs").mkdir(parents=True, exist_ok=True)
-    fn = f"results/runs/{stamp}_{who()}_{a.name}.json"
-    json.dump(rec, open(fn, "w"), indent=1)
-    print("saved", fn)
+    rec.update(val_acc=best_acc, best_epoch=best_ep)
 else:
     # fold == -1: trained on everything; save final weights and predict the test set
     if not a.eval_ckpt:
@@ -205,3 +203,9 @@ else:
     out = f"submissions/{time.strftime('%Y%m%d-%H%M')}_{a.name}.csv"
     sub.to_csv(out, index=False)
     print("weights ->", ckpt, "\nwrote", out)
+    rec.update(submission=out, weights=str(ckpt))       # full-data run: no val_acc, record what was produced
+
+Path("results/runs").mkdir(parents=True, exist_ok=True)
+fn = f"results/runs/{stamp}_{who()}_{a.name}.json"
+json.dump(rec, open(fn, "w"), indent=1)
+print("saved", fn)
